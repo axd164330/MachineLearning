@@ -63,45 +63,62 @@ public class RealAdaBoosting {
 		//List<Double> bound = new ArrayList<>();
 		double bound=1;
 		Map<Integer,Double> ft = new HashMap<>();
-		for(int i=0;i<no_of_iterations;i++){
+		int counter=0;
 		
+		for(int i=0;i<no_of_iterations;i++){
+			counter++;
 			int total_hypothesis = no_of_examples+1;
 			double hypothesisValue = 0;		// hypothesis Value
 			List<Double> correctClassifier = null;
 			
 			List<Double> afterCheck = new ArrayList<>();
 			String sign = "";
-			double errors = Double.MAX_VALUE;
+			//double errors = Double.MAX_VALUE;
 			double qualifer = 0;
 			
 			// Choose best hypothesis
 			
+			double minG=Double.MAX_VALUE;
+			double pRightPositive=0,pRightNegative=0,pWrongPositive=0,pWrongNegative=0;
 			
 			for(int j=0;j<total_hypothesis;j++){									// Check if values are less than hypothesis
 				
 				hypothesisValue = getHypothesisVal(examples, total_hypothesis, j);				
+				double pRightPositive1=0,pRightNegative1=0,pWrongPositive1=0,pWrongNegative1=0;
 				
-				for(double exampleVal:examples){
+				for(int val=0;val<examples.size();val++){
 					
-					if(exampleVal<hypothesisValue){
+					if(examples.get(val)<hypothesisValue){
 						afterCheck.add((double)1);
 					}else{
 						afterCheck.add((double)-1);
 					}
+					
+					if(afterCheck.get(val)==1 &&  yValue.get(val)==1){
+						pRightPositive1 = pRightPositive1 + probabilites.get(val);
+					}else if(afterCheck.get(val)==1 && yValue.get(val)== -1){
+						pWrongNegative1 = pWrongNegative1 + probabilites.get(val);;
+					}else if(afterCheck.get(val) == -1 && yValue.get(val)==1){
+						pWrongPositive1 = pWrongPositive1 + probabilites.get(val);
+					}else{
+						pRightNegative1 = pRightNegative1 + probabilites.get(val);
+					}
+					
 				}
 				
-				double no_of_errors = getTotalErrors(yValue, afterCheck,probabilites);
+				double G =  Math.sqrt(pRightPositive1*pWrongNegative1) + Math.sqrt(pWrongPositive1*pRightNegative1);
 				
-				if(no_of_errors< errors){
-					errors = no_of_errors;
+				if(G<minG){
 					qualifer = hypothesisValue;
-					sign = "<";
+					minG = G;
+					sign="<";
 					correctClassifier = new ArrayList<>(afterCheck);
-				}
-				
-
+					pRightNegative = pRightNegative1;
+					pRightPositive = pRightPositive1;
+					pWrongNegative = pWrongNegative1;
+					pWrongPositive = pWrongPositive1;
+				}			
 				afterCheck.clear();
-				
 			}
 						
 			
@@ -109,25 +126,40 @@ public class RealAdaBoosting {
 				
 				hypothesisValue = getHypothesisVal(examples, total_hypothesis, j);				
 				
-				
-				for(double d:examples){
+				double pRightPositive1=0,pRightNegative1=0,pWrongPositive1=0,pWrongNegative1=0;
+				for(int val=0;val<examples.size();val++){
 					
-					if(d>hypothesisValue){
+					if(examples.get(val)>hypothesisValue){
 						afterCheck.add((double)1);
 					}else{
 						afterCheck.add((double)-1);
 					}
+					
+					if(afterCheck.get(val)==1 && yValue.get(val)==1){
+						pRightPositive1 = pRightPositive1 + probabilites.get(val);
+					}else if(afterCheck.get(val)==1 && yValue.get(val)== -1){
+						pWrongNegative1 = pWrongNegative1 + probabilites.get(val);
+					}else if(afterCheck.get(val)==-1 && yValue.get(val)==1){
+						pWrongPositive1 = pWrongPositive1 + probabilites.get(val);
+					}else{
+						pRightNegative1 = pRightNegative1 + probabilites.get(val);
+					}
 				}
 				
-				double no_of_errors = getTotalErrors(yValue, afterCheck,probabilites);
+				double G =  Math.sqrt(pRightPositive1*pWrongNegative1) + Math.sqrt(pWrongPositive1*pRightNegative1);
 				
-				if(no_of_errors< errors){
-					errors = no_of_errors;
+				if(G<minG){
 					qualifer = hypothesisValue;
-					sign = ">";
+					minG = G;
+					sign=">";
 					correctClassifier = new ArrayList<>(afterCheck);
-				}
+					pRightNegative = pRightNegative1;
+					pRightPositive = pRightPositive1;
+					pWrongNegative = pWrongNegative1;
+					pWrongPositive = pWrongPositive1;
+				}	
 				afterCheck.clear();
+				
 			}
 			
 			// Calculate p+(right) , p-(wrong), p+(wrong), p-(wrong)
@@ -135,84 +167,60 @@ public class RealAdaBoosting {
 			boostedClassifier.add(qualifer);
 			boostedClassifierSign.add(sign);
 			
-			System.out.println("Selected Qualifer: h " + sign +" " + qualifer);
+			System.out.println("Selected Qualifer: h" + counter + " : " + sign +" " + qualifer);
 			
-			double pRightPositive=0,pRightNegative=0,pWrongPositive=0,pWrongNegative=0;
-			
-			for(int val=0;val<no_of_examples;val++){
-				
-				if(sign.equals("<")){
-					if(examples.get(val) < qualifer && yValue.get(val)==1){
-						pRightPositive = pRightPositive + probabilites.get(val);
-					}else if(examples.get(val) < qualifer && yValue.get(val)== -1){
-						pWrongNegative = pWrongNegative + probabilites.get(val);;
-					}else if(examples.get(val) > qualifer && yValue.get(val)==1){
-						pWrongPositive = pWrongPositive + probabilites.get(val);;
-					}else{
-						pRightNegative = pRightNegative + probabilites.get(val);
-					}
-					
-				}else{
-					if(examples.get(val) > qualifer && yValue.get(val)==1){
-						pRightPositive = pRightPositive + probabilites.get(val);
-					}else if(examples.get(val) > qualifer && yValue.get(val)== -1){
-						pWrongNegative = pRightPositive + probabilites.get(val);
-					}else if(examples.get(val) < qualifer && yValue.get(val)==1){
-						pWrongPositive = pWrongPositive + probabilites.get(val);
-					}else{
-						pRightNegative = pRightNegative + probabilites.get(val);
-					}
-				}
-				
-			}
-			
-			double G =  Math.sqrt(pRightPositive*pWrongNegative) + Math.sqrt(pWrongPositive*pRightNegative);
 			
 			double ctPositive = 0.5*Math.log((pRightPositive+epsilon)/(pWrongNegative+epsilon));
 			double ctNegative = 0.5*Math.log((pWrongPositive+epsilon)/(pRightNegative+epsilon));
 			
 			
 			
-			boostedAlpha.add(G);
-			System.out.println("G error of h : " + G );
+			boostedAlpha.add(minG);
+			System.out.println("G error of h"  + counter + " : " + minG);
 			System.out.println("weights , c+ :" + ctPositive + " c- :" + ctNegative);
 			List<Double> preNormalisedProb = new ArrayList<>();
 			double totalProb=0;
 			for(int val=0;val<no_of_examples;val++){
 				
 				if(correctClassifier.get(val).equals((double)1)){
-					double val1 = probabilites.get(val)*Math.exp(-1*yValue.get(val)*ctPositive);
-					totalProb+=val1;
-					preNormalisedProb.add(val1);
 					if(ft.get(val)==null){
 						ft.put(val, ctPositive);
 					}else{
 						ft.put(val, ft.get(val) + ctPositive);
 					}
 				}else{
-					double val1 = probabilites.get(val)*Math.exp(-1*yValue.get(val)*ctNegative);
-					totalProb+=val1;
-					preNormalisedProb.add(val1);
 					if(ft.get(val)==null){
 						ft.put(val, ctNegative);
 					}else{
 						ft.put(val, ft.get(val) + ctNegative);
 					}
 				}
+				
+				if(correctClassifier.get(val).equals((double)1)){
+					double val1 = probabilites.get(val)*Math.exp(-1*yValue.get(val)*ctPositive);
+					totalProb+=val1;
+					preNormalisedProb.add(val1);
+					
+				}else{
+					double val1 = probabilites.get(val)*Math.exp(-1*yValue.get(val)*ctNegative);
+					totalProb+=val1;
+					preNormalisedProb.add(val1);
+					
+				}
 			}
 			
 			
-			probabilites = new ArrayList<>(preNormalisedProb);
+			
 			List<Double> probAfterNormalization = new ArrayList<>();
 			double newError=0;
 			for(int val=0;val<no_of_examples;val++){
 				probAfterNormalization.add(preNormalisedProb.get(val)/totalProb);
-				if((yValue.get(val)>0 && ft.get(val) <0) || (yValue.get(val)<0 && ft.get(val)>0)){
+				if((yValue.get(val)==1 && ft.get(val) <=0) || (yValue.get(val)==-1 && ft.get(val)>=0)){
 					newError++;
 				}
 			}
 			bound = bound * totalProb;
-			
+			probabilites = new ArrayList<>(probAfterNormalization);
 			System.out.println("Normalizatoin factor Z : " + totalProb);
 			
 			System.out.println("prob after normalization "+ probAfterNormalization);
@@ -241,14 +249,4 @@ public class RealAdaBoosting {
 		return checkVal;
 	}
 	
-	private static double getTotalErrors(List<Double> yValue, List<Double> afterCheck, List<Double> probabilites) {
-		double no_of_errors = 0;
-		for(int val=0;val<afterCheck.size();val++){
-			
-			if(!(afterCheck.get(val).equals(yValue.get(val)))){
-				no_of_errors = no_of_errors + probabilites.get(val);
-			}
-		}
-		return no_of_errors;
-	}
 }
